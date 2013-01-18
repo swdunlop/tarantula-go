@@ -33,3 +33,5 @@ itself to a http.ResponseWriter.  A number of convenient wrappers can be found i
 including HttpError, ForwardToURL and WithTemplate.
 
 Refer to https://github.com/swdunlop/livefire-go for a more involved example for Tarantula.
+
+See http://godoc.org/github.com/swdunlop/tarantula-go for API documentation.
