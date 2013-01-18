@@ -32,6 +32,6 @@ Tarantula provides a simple interface, tarantula.ResponderToHttp, that indicates
 itself to a http.ResponseWriter.  A number of convenient wrappers can be found in Tarantula that implement this interface,
 including HttpError, ForwardToURL and WithTemplate.
 
-Refer to https://github.com/swdunlop/livefire-go for a more involved example for Tarantula.
+Refer to https://github.com/swdunlop/livefire for a more involved example for Tarantula.
 
 See http://godoc.org/github.com/swdunlop/tarantula-go for API documentation.
