@@ -38,7 +38,6 @@ import (
 	"encoding/json"
 	"html/template"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -164,7 +163,6 @@ func invokeService(fn Func, req *http.Request) (v interface{}, err error) {
 // Used by BindService to inform the browser about an error.
 func writeHttpError(w http.ResponseWriter, req *http.Request, err error) {
 	msg := err.Error()
-	log.Println(req.RemoteAddr, msg)
 
 	switch e := err.(type) {
 	case ResponderToHttp:
