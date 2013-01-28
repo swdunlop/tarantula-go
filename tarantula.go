@@ -280,3 +280,15 @@ func (wt WithTemplate) RespondToHttp(w http.ResponseWriter) error {
 	w.Header().Set("Content-type", "text/html")
 	return wt.Tmpl.Execute(w, wt.Data)
 }
+
+// WithCookie is a ResponderToHttp that sets a cookie before forwarding to Next.
+type WithCookie struct {
+	Cookie *http.Cookie
+	Next   ResponderToHttp
+}
+
+// RespondToHttp is an implementation of ResponderToHttp.
+func (wc WithCookie) RespondToHttp(w http.ResponseWriter) error {
+	http.SetCookie(w, wc.Cookie)
+	return wc.Next.RespondToHttp(w)
+}
