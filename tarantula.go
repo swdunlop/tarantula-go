@@ -136,13 +136,17 @@ type Func func(req *http.Request) (interface{}, error)
 func (svc *Service) Bind(pattern string, fn Func) {
 	svc.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
 		val, err := invokeService(fn, req)
-		if err != nil {
-			writeHttpError(w, req, err)
-			return
-		}
-		writeHttpValue(w, val)
+		RespondToHttp(w, req, val, err)
 	})
-	return
+}
+
+// RespondToHttp permits ResponderToHttp implementations to reuse how Tarantula responds to a HTTP request.
+func RespondToHttp(w http.ResponseWriter, req *http.Request, val interface{}, err error) {
+	if err != nil {
+		writeHttpError(w, req, err)
+		return
+	}
+	writeHttpValue(w, val)
 }
 
 // Induces a HTTP level redirect to dest.
