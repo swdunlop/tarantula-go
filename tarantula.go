@@ -136,17 +136,19 @@ type Func func(req *http.Request) (interface{}, error)
 func (svc *Service) Bind(pattern string, fn Func) {
 	svc.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
 		val, err := invokeService(fn, req)
-		RespondToHttp(w, req, val, err)
+		err = RespondToHttp(w, val, err)
+		if err != nil {
+			panic(err)
+		}
 	})
 }
 
 // RespondToHttp permits ResponderToHttp implementations to reuse how Tarantula responds to a HTTP request.
-func RespondToHttp(w http.ResponseWriter, req *http.Request, val interface{}, err error) {
+func RespondToHttp(w http.ResponseWriter, val interface{}, err error) error {
 	if err != nil {
-		writeHttpError(w, req, err)
-		return
+		return writeHttpError(w, err)
 	}
-	writeHttpValue(w, val)
+	return writeHttpValue(w, val)
 }
 
 // Induces a HTTP level redirect to dest.
@@ -165,13 +167,12 @@ func invokeService(fn Func, req *http.Request) (v interface{}, err error) {
 }
 
 // Used by BindService to inform the browser about an error.
-func writeHttpError(w http.ResponseWriter, req *http.Request, err error) {
+func writeHttpError(w http.ResponseWriter, err error) error {
 	msg := err.Error()
 
 	switch e := err.(type) {
 	case ResponderToHttp:
-		e.RespondToHttp(w)
-		return
+		return e.RespondToHttp(w)
 	}
 
 	w.Header().Set("Content-type", "application/json")
@@ -180,7 +181,7 @@ func writeHttpError(w http.ResponseWriter, req *http.Request, err error) {
 		Msg string `json:"msg"`
 	}
 	e.Msg = msg
-	json.NewEncoder(w).Encode(&e)
+	return json.NewEncoder(w).Encode(&e)
 }
 
 // Used by BindService to provide value to the browser.
@@ -260,13 +261,13 @@ func (hem HttpError) Error() string {
 // WithHeader is a ResponderToHttp that wraps another ResponderWithHttp, augmenting it with a HTTP header.
 type WithHeader struct {
 	Key, Val string
-	Next     ResponderToHttp
+	Next     interface{}
 }
 
 // RespondToHttp is an implementation of ResponderToHttp.
 func (wit WithHeader) RespondToHttp(w http.ResponseWriter) error {
 	w.Header().Set(wit.Key, wit.Val)
-	return wit.Next.RespondToHttp(w)
+	return RespondToHttp(w, wit.Next, nil)
 }
 
 // WithTemplate is a ResponderToHttp that uses Tmpl to convert Data to a text/html response.
@@ -284,11 +285,11 @@ func (wt WithTemplate) RespondToHttp(w http.ResponseWriter) error {
 // WithCookie is a ResponderToHttp that sets a cookie before forwarding to Next.
 type WithCookie struct {
 	Cookie *http.Cookie
-	Next   ResponderToHttp
+	Next   interface{}
 }
 
 // RespondToHttp is an implementation of ResponderToHttp.
 func (wc WithCookie) RespondToHttp(w http.ResponseWriter) error {
 	http.SetCookie(w, wc.Cookie)
-	return wc.Next.RespondToHttp(w)
+	return RespondToHttp(w, wc.Next, nil)
 }
