@@ -44,6 +44,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"log"
 )
 
 // NewService creates a new tarantula.Service that will (eventually) listen to the supplied TCP address.
@@ -137,9 +138,7 @@ func (svc *Service) Bind(pattern string, fn Func) {
 	svc.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
 		val, err := invokeService(fn, req)
 		err = RespondToHttp(w, val, err)
-		if err != nil {
-			panic(err)
-		}
+		log.Println(req.RemoteAddr, "response error", err.Error())
 	})
 }
 
