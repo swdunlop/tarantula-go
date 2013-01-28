@@ -138,7 +138,9 @@ func (svc *Service) Bind(pattern string, fn Func) {
 	svc.mux.HandleFunc(pattern, func(w http.ResponseWriter, req *http.Request) {
 		val, err := invokeService(fn, req)
 		err = RespondToHttp(w, val, err)
-		log.Println(req.RemoteAddr, "response error", err.Error())
+		if err != nil {
+			log.Println(req.RemoteAddr, "response error", err.Error())
+		}
 	})
 }
 
