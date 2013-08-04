@@ -5,7 +5,7 @@ Tarantula is a mild framework wrapping Go's net/http with some simple utilities 
 
 	package main
 	import "net/http"
-	import "github.com/swdunlop/tarantula"
+	import "github.com/swdunlop/tarantula-go"
 	func main() {
 		svc := tarantula.NewService(cfg.Bind)
 		svc.Bind("/", presentContent)
