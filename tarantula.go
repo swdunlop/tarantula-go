@@ -1,5 +1,5 @@
 /*
-Tarantula is a mild framework wrapping Go's net/http with some simple utilities for different kinds of HTTP output. 
+Tarantula is a mild framework wrapping Go's net/http with some simple utilities for different kinds of HTTP output.
 
 	package main
 	import "net/http"
@@ -26,7 +26,7 @@ Tarantula is also somewhat clever about watching for SIGUSR1; it regards this as
 enter a controlled shutdown, finishing any pending requests before permitting the Run method to return.  The Stop method
 produces similar behavior, closing the HTTP listener then permitting existing connections to wind down.
 
-Tarantula provides a simple interface, tarantula.ResponderToHttp, that indicates a value that knows how to write 
+Tarantula provides a simple interface, tarantula.ResponderToHttp, that indicates a value that knows how to write
 itself to a http.ResponseWriter.  A number of convenient wrappers can be found in Tarantula that implement this interface,
 including HttpError, ForwardToURL and WithTemplate.
 
@@ -38,13 +38,10 @@ import (
 	"encoding/json"
 	"html/template"
 	"io"
+	"log"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
-	"log"
 )
 
 // NewService creates a new tarantula.Service that will (eventually) listen to the supplied TCP address.
@@ -78,13 +75,6 @@ func (svc *Service) waitPending() {
 	if svc.started {
 		svc.pending.Wait()
 	}
-}
-
-func (svc *Service) handleSignals() {
-	defer svc.Stop()
-	done := make(chan os.Signal)
-	signal.Notify(done, syscall.SIGUSR1)
-	<-done
 }
 
 // Initiates an eventual stop of the service by closing its listener.
