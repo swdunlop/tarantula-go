@@ -241,7 +241,9 @@ type HttpError struct {
 func (hem HttpError) RespondToHttp(w http.ResponseWriter) error {
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(hem.Code)
-	return json.NewEncoder(w).Encode(hem.Msg)
+	// we cannot safely write to the body, in case this is a HEAD request TODO
+	//return json.NewEncoder(w).Encode(hem.Msg)
+	return nil
 }
 
 // Error is an implementation of error that limits itself to the actual message.
