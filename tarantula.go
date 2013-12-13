@@ -36,6 +36,7 @@ package tarantula
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -166,13 +167,11 @@ func writeHttpError(w http.ResponseWriter, err error) error {
 		return e.RespondToHttp(w)
 	}
 
-	w.Header().Set("Content-type", "application/json")
-	w.WriteHeader(500)
 	var e struct {
 		Msg string `json:"msg"`
 	}
 	e.Msg = msg
-	return json.NewEncoder(w).Encode(&e)
+	return writeHttpJson(w, 500, &e)
 }
 
 // Used by BindService to provide value to the browser.
@@ -181,10 +180,21 @@ func writeHttpValue(w http.ResponseWriter, v interface{}) error {
 	case ResponderToHttp:
 		return data.RespondToHttp(w)
 	}
+	return writeHttpJson(w, 200, v)
+}
 
-	w.Header().Set("Content-type", "application/json")
-	w.WriteHeader(200)
-	return json.NewEncoder(w).Encode(v)
+func writeHttpJson(w http.ResponseWriter, c int, v interface{}) error {
+	js, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	h := w.Header()
+	h.Set("Content-type", "application/json")
+	h.Set("Content-length", fmt.Sprint(len(js)))
+	h.Set("Connection", "keep-alive")
+	w.WriteHeader(c)
+	_, err = w.Write(js)
+	return err
 }
 
 // Implementations of ResponderToHttp may be used by bound services to specify non-JSON responses.
@@ -192,18 +202,33 @@ type ResponderToHttp interface {
 	RespondToHttp(w http.ResponseWriter) error
 }
 
-// CopyToHttp, when used as a ResponderToHttp, will copy an io.ReaderCloser with specified MIME Content Type to the client.
+// CopyToHttp, when used as a ResponderToHttp, will copy an io.ReaderCloser with specified MIME Content Type to the client; if Length is omitted this will NOT keep-alive the connection, because the length will not be known.  Length will NOT limit how many bytes are copied.
 type CopyToHttp struct {
-	Mime string
-	File File
+	Mime   string
+	File   File
+	Length int64
 }
 
 // RespondToHttp is an implementation of ResponderToHttp.
 func (cth CopyToHttp) RespondToHttp(w http.ResponseWriter) error {
 	defer cth.File.Close()
+	if cth.Length != 0 {
+		return cth.copyN(w)
+	}
+
 	w.Header().Set("Content-type", cth.Mime)
 	w.WriteHeader(200)
 	_, err := io.Copy(w, cth.File)
+	return err
+}
+
+func (cth *CopyToHttp) copyN(w http.ResponseWriter) error {
+	h := w.Header()
+	h.Set("Content-type", cth.Mime)
+	h.Set("Content-length", fmt.Sprint(cth.Length))
+	h.Set("Connection", "keep-alive")
+	w.WriteHeader(200)
+	_, err := io.CopyN(w, cth.File, cth.Length)
 	return err
 }
 
@@ -220,7 +245,10 @@ type ForwardToURL struct {
 
 // RespondToHttp is an implementation of ResponderToHttp.
 func (ftu ForwardToURL) RespondToHttp(w http.ResponseWriter) error {
-	w.Header().Set("Location", ftu.URL)
+	h := w.Header()
+	h.Set("Location", ftu.URL)
+	h.Set("Content-length", "0")
+	h.Set("Connection", "keep-alive")
 	w.WriteHeader(302)
 	_, err := w.Write([]byte{})
 	return err
@@ -239,11 +267,14 @@ type HttpError struct {
 
 // RespondToHttp is an implementation of ResponderToHttp.
 func (hem HttpError) RespondToHttp(w http.ResponseWriter) error {
-	w.Header().Set("Content-type", "application/json")
+	h := w.Header()
+	h.Set("Content-length", "0")
+	h.Set("Connection", "keep-alive")
 	w.WriteHeader(hem.Code)
 	// we cannot safely write to the body, in case this is a HEAD request TODO
 	//return json.NewEncoder(w).Encode(hem.Msg)
-	return nil
+	_, err := w.Write([]byte{})
+	return err
 }
 
 // Error is an implementation of error that limits itself to the actual message.
